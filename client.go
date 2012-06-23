@@ -25,7 +25,7 @@ type Client struct {
 	privateKey               *rsa.PrivateKey
 	onConnectCallback        func(*Client)
 	onDisconnectCallback     func(*Client)
-	onAuthenticationCallback func(*Client, bool)
+	onAuthenticationCallback func(*Client, bool, string)
 	onMessageCallback        func(*Client, *envelope.Envelope, *message.Header)
 	myRouter                 *peer.Peer
 	hostOverride             string
@@ -36,7 +36,7 @@ type Config struct {
 	PrivateKey       *rsa.PrivateKey
 	OnConnect        func(*Client)
 	OnDisconnect     func(*Client)
-	OnAuthentication func(*Client, bool)
+	OnAuthentication func(*Client, bool, string)
 	OnMessage        func(*Client, *envelope.Envelope, *message.Header)
 	HostOverride     string
 }
@@ -175,7 +175,7 @@ func (c *Client) Connect() error {
 					gen, err := message.GenericParse(m)
 					if err == nil {
 						c.isAuthenticated = gen.Success
-						c.onAuthentication(c.isAuthenticated)
+						c.onAuthentication(c.isAuthenticated, gen.Error)
 					}
 					continue
 				}
@@ -205,9 +205,9 @@ func (c *Client) onMessage(e *envelope.Envelope, m *message.Header) {
 	go c.onMessageCallback(c, e, m)
 }
 
-func (c *Client) onAuthentication(s bool) {
+func (c *Client) onAuthentication(s bool, error string) {
 	//fmt.Printf("Authenticated?  %t\n", s)
-	go c.onAuthenticationCallback(c, s)
+	go c.onAuthenticationCallback(c, s, error)
 }
 
 func peerEnvelopeReceiver(ws *websocket.Conn, incoming chan *envelope.Envelope, disconnected chan bool) {
