@@ -23,10 +23,10 @@ type Client struct {
 	isAuthenticated          bool
 	websocket                *websocket.Conn
 	privateKey               *rsa.PrivateKey
-	onConnectCallback        func()
-	onDisconnectCallback     func()
-	onAuthenticationCallback func(bool)
-	onMessageCallback        func(*envelope.Envelope, *message.Header)
+	onConnectCallback        func(*Client)
+	onDisconnectCallback     func(*Client)
+	onAuthenticationCallback func(*Client, bool)
+	onMessageCallback        func(*Client, *envelope.Envelope, *message.Header)
 	myRouter                 *peer.Peer
 	hostOverride             string
 }
@@ -34,10 +34,10 @@ type Client struct {
 type Config struct {
 	Name             string
 	PrivateKey       *rsa.PrivateKey
-	OnConnect        func()
-	OnDisconnect     func()
-	OnAuthentication func(bool)
-	OnMessage        func(*envelope.Envelope, *message.Header)
+	OnConnect        func(*Client)
+	OnDisconnect     func(*Client)
+	OnAuthentication func(*Client, bool)
+	OnMessage        func(*Client, *envelope.Envelope, *message.Header)
 	HostOverride     string
 }
 
@@ -191,23 +191,23 @@ func (c *Client) Connect() error {
 func (c *Client) onConnect(u *url.URL) {
 	c.isAuthenticated = false
 	//fmt.Printf("Connected to [%s].\n", u.String())
-	go c.onConnectCallback()
+	go c.onConnectCallback(c)
 }
 
 func (c *Client) onDisconnect(u *url.URL) {
 	c.isAuthenticated = false
 	//fmt.Printf("Disconnected from [%s].\n", u.String())
-	go c.onDisconnectCallback()
+	go c.onDisconnectCallback(c)
 }
 
 func (c *Client) onMessage(e *envelope.Envelope, m *message.Header) {
 	//fmt.Printf("Envelope from [%s]:  %s\n", e.GetFrom().String(), e)
-	go c.onMessageCallback(e, m)
+	go c.onMessageCallback(c, e, m)
 }
 
 func (c *Client) onAuthentication(s bool) {
 	//fmt.Printf("Authenticated?  %t\n", s)
-	go c.onAuthenticationCallback(s)
+	go c.onAuthenticationCallback(c, s)
 }
 
 func peerEnvelopeReceiver(ws *websocket.Conn, incoming chan *envelope.Envelope, disconnected chan bool) {
